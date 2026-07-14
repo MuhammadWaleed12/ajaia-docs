@@ -1,0 +1,20 @@
+# Render Blueprint. Deploys the app as a single Docker service with a 1GB
+# persistent disk mounted at /app/data (SQLite) and shared with /app/uploads.
+# One-click deploy: https://render.com/deploy?repo=<your-github-repo-url>
+services:
+  - type: web
+    name: ajaia-docs
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        value: file:/var/lib/ajaia/app.db
+      - key: UPLOAD_DIR
+        value: /var/lib/ajaia/uploads
+      - key: SESSION_SECRET
+        generateValue: true
+    disk:
+      name: ajaia-storage
+      mountPath: /var/lib/ajaia
+      sizeGB: 1
