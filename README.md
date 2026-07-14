@@ -122,21 +122,55 @@ to.
 
 ## 4. Deploying
 
-The app is deploy-anywhere with a single **1 GB persistent disk** for the
-SQLite file + uploaded attachments.
+The app supports two deployment shapes:
 
-### Option A — Render (recommended, one blueprint file)
+- **Serverless / free-tier hosts** (Render free, Vercel, etc.) — use
+  **Turso** (free hosted libSQL) for the database. Attachments live on the
+  container's ephemeral filesystem.
+- **Any host with a persistent disk** (Fly.io, Render Starter+, self-hosted
+  Docker) — SQLite + local uploads on a mounted volume, just like local dev.
 
-1. Push this repo to GitHub.
-2. In Render, **New → Blueprint**, point at your fork. Render reads
-   `render.yaml` and provisions:
-   - A Dockerized web service (free plan)
-   - A 1 GB persistent disk mounted at `/var/lib/ajaia`
-   - A generated `SESSION_SECRET`
-3. First boot creates the schema automatically. To pre-populate demo users,
-   shell into the service and run `npm run db:seed`.
+### Option A — Render free tier + Turso (recommended, fully $0)
 
-### Option B — Fly.io
+1. **Create a free Turso database** (no card required):
+
+   ```bash
+   # Install the Turso CLI (or use the web UI at https://turso.tech)
+   curl -sSfL https://get.tur.so/install.sh | bash
+   turso auth login
+   turso db create ajaia
+   turso db show ajaia --url          # copy the libsql://... URL
+   turso db tokens create ajaia       # copy the token
+   ```
+
+2. **Push this repo to GitHub.**
+
+3. In Render, **New → Blueprint**, point at your fork. Render reads
+   `render.yaml` and provisions a Dockerized web service on the free plan.
+   It will prompt you for two secrets — paste the values from step 1:
+   - `DATABASE_URL` → the `libsql://…` URL
+   - `DATABASE_AUTH_TOKEN` → the token
+
+4. First request creates the schema automatically.
+
+5. (Optional) Seed demo users into Turso from your laptop:
+
+   ```bash
+   DATABASE_URL="libsql://…" DATABASE_AUTH_TOKEN="…" npm run db:seed
+   ```
+
+   Or just sign in through the app with any email — the mock-auth flow
+   creates the user on the fly.
+
+> **Attachments caveat:** on the free tier the container has no persistent
+> disk, so uploaded attachment *files* survive within a running container
+> but are lost on redeploy / spin-down. The database rows for uploads still
+> exist, so a stale link would 404. All other data (users, documents,
+> shares) persists in Turso forever. To make attachments fully persistent
+> on Render free, either upgrade to the Starter plan (see Option D) or swap
+> `src/lib/storage.ts` for object storage (S3 / R2 / Supabase Storage).
+
+### Option B — Fly.io (SQLite + volume, everything persists)
 
 ```bash
 fly launch --no-deploy --copy-config      # accept defaults, keep fly.toml
@@ -145,7 +179,7 @@ fly deploy
 fly ssh console -C "npm run db:seed"      # optional demo data
 ```
 
-### Option C — Any Docker host
+### Option C — Any Docker host (SQLite + volume, everything persists)
 
 ```bash
 docker build -t ajaia-docs .
@@ -156,14 +190,19 @@ docker run -p 3000:3000 \
   ajaia-docs
 ```
 
+### Option D — Render Starter plan (~$7/mo, everything persists)
+
+If you'd rather not depend on Turso and want persistent attachments too,
+change `render.yaml` back to `plan: starter` and add a `disk:` block —
+Starter supports persistent disks (~$0.25/GB/month).
+
 ### Note on Vercel
 
-Vercel's serverless functions have an ephemeral filesystem, so the default
-local SQLite + local uploads setup does **not** work there without changes.
-`db.ts` is already Turso-compatible (set `DATABASE_URL=libsql://…` and
-`DATABASE_AUTH_TOKEN=…`), but you'd also need to swap `src/lib/storage.ts`
-for object storage (S3 / R2 / Supabase Storage). Out of scope here; the
-Render blueprint is the fastest path to a live URL.
+Vercel's serverless functions have an ephemeral filesystem, so it works
+with the same Turso setup as Option A. You'd still need to swap
+`src/lib/storage.ts` for object storage (S3 / R2 / Supabase Storage) if
+you want attachments to survive across deploys. The Render blueprint is
+the fastest zero-config path.
 
 ---
 

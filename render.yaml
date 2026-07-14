@@ -1,6 +1,17 @@
-# Render Blueprint. Deploys the app as a single Docker service with a 1GB
-# persistent disk mounted at /app/data (SQLite) and shared with /app/uploads.
-# One-click deploy: https://render.com/deploy?repo=<your-github-repo-url>
+# Render Blueprint (free tier).
+#
+# Render's free tier does not support persistent disks, so we use Turso
+# (free hosted libSQL) for the database. Attachments are written to the
+# container filesystem; they persist within a running container but are
+# lost on redeploy / spin-down. All other data (users, documents, shares)
+# lives in Turso and persists forever.
+#
+# Setup once (see README § 4):
+#   1. Sign up at https://turso.tech (GitHub login, no card).
+#   2. `turso db create ajaia`  →  copy the libsql://... URL.
+#   3. `turso db tokens create ajaia`  →  copy the token.
+#   4. In Render, when it prompts for DATABASE_URL and DATABASE_AUTH_TOKEN
+#      after applying this blueprint, paste those values.
 services:
   - type: web
     name: ajaia-docs
@@ -9,12 +20,10 @@ services:
     dockerfilePath: ./Dockerfile
     envVars:
       - key: DATABASE_URL
-        value: file:/var/lib/ajaia/app.db
+        sync: false            # e.g. libsql://ajaia-<you>.turso.io
+      - key: DATABASE_AUTH_TOKEN
+        sync: false            # the Turso token from step 3 above
       - key: UPLOAD_DIR
-        value: /var/lib/ajaia/uploads
+        value: /tmp/ajaia-uploads
       - key: SESSION_SECRET
         generateValue: true
-    disk:
-      name: ajaia-storage
-      mountPath: /var/lib/ajaia
-      sizeGB: 1
