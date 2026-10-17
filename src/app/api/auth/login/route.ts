@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     await ensureInitialized();
     const { email, name } = Body.parse(await req.json());
     const user = await upsertUser({ email, name: name || defaultNameFromEmail(email) });
-    setSessionCookie(user.id);
+    await setSessionCookie(user.id);
     return NextResponse.json({ user });
   } catch (err) {
     return handleError(err);

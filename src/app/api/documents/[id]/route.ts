@@ -22,17 +22,18 @@ const PatchBody = z
   })
   .strict();
 
-type Ctx = { params: { id: string } };
+type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(_req: NextRequest, { params }: Ctx) {
   try {
+    const { id } = await params;
     await ensureInitialized();
     const user = await requireSessionUser();
-    const access = await getDocumentForUser(params.id, user.id, "view");
+    const access = await getDocumentForUser(id, user.id, "view");
     // Only the owner sees the share list; collaborators see their own role only.
     const [shares, attachments] = await Promise.all([
-      access.role === "owner" ? listSharesForDocument(params.id) : Promise.resolve([]),
-      listAttachments(params.id),
+      access.role === "owner" ? listSharesForDocument(id) : Promise.resolve([]),
+      listAttachments(id),
     ]);
     return NextResponse.json({
       document: access.document,
@@ -47,12 +48,13 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 
 export async function PATCH(req: NextRequest, { params }: Ctx) {
   try {
+    const { id } = await params;
     await ensureInitialized();
     const user = await requireSessionUser();
     const body = PatchBody.parse(await req.json());
     // Editing requires either ownership or 'edit' share permission.
-    await getDocumentForUser(params.id, user.id, "edit");
-    const doc = await updateDocument(params.id, body);
+    await getDocumentForUser(id, user.id, "edit");
+    const doc = await updateDocument(id, body);
     return NextResponse.json({ document: doc });
   } catch (err) {
     return handleError(err);
@@ -61,13 +63,14 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
 
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
   try {
+    const { id } = await params;
     await ensureInitialized();
     const user = await requireSessionUser();
-    const access = await getDocumentForUser(params.id, user.id, "view");
+    const access = await getDocumentForUser(id, user.id, "view");
     if (access.role !== "owner") {
       throw new HttpError(403, "Only the owner can delete this document");
     }
-    await deleteDocument(params.id);
+    await deleteDocument(id);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return handleError(err);

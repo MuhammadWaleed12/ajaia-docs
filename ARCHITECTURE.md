@@ -7,7 +7,7 @@
 
 ## TL;DR
 
-- **Next.js 14 (App Router) + TypeScript + Tailwind** on the front-end;
+- **Next.js 15 (App Router) + TypeScript + Tailwind** on the front-end;
   **Tiptap** for rich text.
 - **libSQL (SQLite)** on the back-end via `@libsql/client`, with a
   hand-written SQL schema. No ORM — the model is small and explicit SQL

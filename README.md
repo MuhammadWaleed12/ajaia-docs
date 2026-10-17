@@ -1,11 +1,13 @@
 # Ajaia Docs
 
+[![CI](https://github.com/MuhammadWaleed12/ajaia-docs/actions/workflows/ci.yml/badge.svg)](https://github.com/MuhammadWaleed12/ajaia-docs/actions/workflows/ci.yml)
+
 A tiny full-stack documents app: create, rename, and rich-text-edit documents
 in the browser; import `.txt` / `.md` / `.docx` files as new drafts; attach
 files to any document; and share documents with other users as **viewers** or
 **editors**.
 
-Built with **Next.js 14 (App Router)**, **TypeScript**, **Tiptap**, and
+Built with **Next.js 15 (App Router)**, **TypeScript**, **Tiptap**, and
 **SQLite (libSQL)**. Everything (database + uploaded files) is persisted to
 local disk out of the box — no external services required for local dev.
 
@@ -70,13 +72,16 @@ to.
 | `npm run db:seed`   | **Wipe + seed** demo users and documents (dev only)       |
 | `npm test`          | Run the Vitest suite once                                 |
 | `npm run test:watch`| Vitest watch mode                                         |
-| `npm run lint`      | ESLint via `next lint`                                    |
+| `npm run lint`      | Run ESLint with zero warnings allowed                     |
+| `npm run typecheck` | Check TypeScript without emitting build artifacts         |
 
 ### Verified locally
 
-- `npm run build` — Next.js 14 production build, no warnings.
+- `npm run build` — Next.js 15 production build, no warnings.
 - `npm test` — 15 tests, all passing, ~300 ms.
 - `npm run lint` — zero warnings / errors.
+- `npm run typecheck` — strict TypeScript check.
+- `npm audit --omit=dev --audit-level=high` — blocks high/critical production vulnerabilities.
 - End-to-end HTTP smoke against `npm start`: login → create → rename → edit →
   share → view-as-shared-user → attempt-edit-as-viewer (correctly 403) →
   upload attachment → download attachment as collaborator (200) → same

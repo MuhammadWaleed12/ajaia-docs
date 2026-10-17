@@ -12,14 +12,15 @@ import { handleError } from "@/lib/api";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Ctx = { params: { id: string } };
+type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(_req: NextRequest, { params }: Ctx) {
   try {
+    const { id } = await params;
     await ensureInitialized();
     const user = await requireSessionUser();
-    await getDocumentForUser(params.id, user.id, "view");
-    const attachments = await listAttachments(params.id);
+    await getDocumentForUser(id, user.id, "view");
+    const attachments = await listAttachments(id);
     return NextResponse.json({ attachments });
   } catch (err) {
     return handleError(err);
@@ -28,10 +29,11 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 
 export async function POST(req: NextRequest, { params }: Ctx) {
   try {
+    const { id } = await params;
     await ensureInitialized();
     const user = await requireSessionUser();
     // Attaching a file counts as editing the document.
-    await getDocumentForUser(params.id, user.id, "edit");
+    await getDocumentForUser(id, user.id, "edit");
 
     const form = await req.formData();
     const file = form.get("file");
@@ -44,7 +46,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     const bytes = new Uint8Array(await file.arrayBuffer());
     const storagePath = await writeUpload(bytes);
     const attachment = await createAttachment({
-      documentId: params.id,
+      documentId: id,
       filename: file.name || "attachment",
       mimeType: file.type || "application/octet-stream",
       sizeBytes: file.size,

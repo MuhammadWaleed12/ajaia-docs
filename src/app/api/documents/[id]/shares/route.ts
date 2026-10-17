@@ -18,17 +18,18 @@ const ShareBody = z
   })
   .strict();
 
-type Ctx = { params: { id: string } };
+type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(_req: NextRequest, { params }: Ctx) {
   try {
+    const { id } = await params;
     await ensureInitialized();
     const user = await requireSessionUser();
-    const access = await getDocumentForUser(params.id, user.id, "view");
+    const access = await getDocumentForUser(id, user.id, "view");
     if (access.role !== "owner") {
       throw new HttpError(403, "Only the owner can view share settings");
     }
-    const shares = await listSharesForDocument(params.id);
+    const shares = await listSharesForDocument(id);
     return NextResponse.json({ shares });
   } catch (err) {
     return handleError(err);
@@ -37,10 +38,11 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 
 export async function POST(req: NextRequest, { params }: Ctx) {
   try {
+    const { id } = await params;
     await ensureInitialized();
     const user = await requireSessionUser();
     const body = ShareBody.parse(await req.json());
-    const access = await getDocumentForUser(params.id, user.id, "view");
+    const access = await getDocumentForUser(id, user.id, "view");
     if (access.role !== "owner") {
       throw new HttpError(403, "Only the owner can share this document");
     }
@@ -57,12 +59,12 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     if (target.id === user.id) throw new HttpError(400, "You already own this document");
 
     await upsertShare({
-      documentId: params.id,
+      documentId: id,
       userId: target.id,
       permission: body.permission,
     });
 
-    const shares = await listSharesForDocument(params.id);
+    const shares = await listSharesForDocument(id);
     return NextResponse.json({ shares }, { status: 201 });
   } catch (err) {
     return handleError(err);

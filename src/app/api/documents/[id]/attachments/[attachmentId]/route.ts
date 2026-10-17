@@ -8,16 +8,17 @@ import { handleError } from "@/lib/api";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Ctx = { params: { id: string; attachmentId: string } };
+type Ctx = { params: Promise<{ id: string; attachmentId: string }> };
 
 export async function GET(_req: NextRequest, { params }: Ctx) {
   try {
+    const { id, attachmentId } = await params;
     await ensureInitialized();
     const user = await requireSessionUser();
-    await getDocumentForUser(params.id, user.id, "view");
+    await getDocumentForUser(id, user.id, "view");
 
-    const attachment = await getAttachmentWithPath(params.attachmentId);
-    if (!attachment || attachment.documentId !== params.id) {
+    const attachment = await getAttachmentWithPath(attachmentId);
+    if (!attachment || attachment.documentId !== id) {
       throw new HttpError(404, "Attachment not found");
     }
 

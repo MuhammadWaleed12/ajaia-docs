@@ -10,15 +10,16 @@ import DocumentEditor from "./DocumentEditor";
 
 export const dynamic = "force-dynamic";
 
-export default async function DocumentPage({ params }: { params: { id: string } }) {
+export default async function DocumentPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const user = await getSessionUser();
-  if (!user) redirect(`/login?next=/documents/${params.id}`);
+  if (!user) redirect(`/login?next=/documents/${id}`);
 
   try {
-    const access = await getDocumentForUser(params.id, user.id, "view");
+    const access = await getDocumentForUser(id, user.id, "view");
     const [shares, attachments] = await Promise.all([
-      access.role === "owner" ? listSharesForDocument(params.id) : Promise.resolve([]),
-      listAttachments(params.id),
+      access.role === "owner" ? listSharesForDocument(id) : Promise.resolve([]),
+      listAttachments(id),
     ]);
     return (
       <DocumentEditor

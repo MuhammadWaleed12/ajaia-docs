@@ -14,7 +14,7 @@ export const SESSION_COOKIE = COOKIE_NAME;
  */
 export async function getSessionUser(): Promise<User | null> {
   await ensureInitialized();
-  const jar = cookies();
+  const jar = await cookies();
   const uid = jar.get(COOKIE_NAME)?.value;
   if (!uid) return null;
   return findUserById(uid);
@@ -34,8 +34,9 @@ export class HttpError extends Error {
   }
 }
 
-export function setSessionCookie(userId: string) {
-  cookies().set(COOKIE_NAME, userId, {
+export async function setSessionCookie(userId: string) {
+  const jar = await cookies();
+  jar.set(COOKIE_NAME, userId, {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
@@ -43,6 +44,7 @@ export function setSessionCookie(userId: string) {
   });
 }
 
-export function clearSessionCookie() {
-  cookies().delete(COOKIE_NAME);
+export async function clearSessionCookie() {
+  const jar = await cookies();
+  jar.delete(COOKIE_NAME);
 }
