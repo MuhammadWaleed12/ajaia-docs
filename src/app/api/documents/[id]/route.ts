@@ -5,12 +5,14 @@ import { requireSessionUser } from "@/lib/session";
 import {
   deleteDocument,
   getDocumentForUser,
+  listAttachmentStoragePaths,
   listAttachments,
   listSharesForDocument,
   updateDocument,
 } from "@/lib/documents";
 import { handleError } from "@/lib/api";
 import { HttpError } from "@/lib/session";
+import { deleteUpload } from "@/lib/storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -70,7 +72,14 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
     if (access.role !== "owner") {
       throw new HttpError(403, "Only the owner can delete this document");
     }
+    const storagePaths = await listAttachmentStoragePaths(id);
     await deleteDocument(id);
+    const cleanup = await Promise.allSettled(storagePaths.map(deleteUpload));
+    for (const result of cleanup) {
+      if (result.status === "rejected") {
+        console.error("Failed to clean up deleted document attachment", result.reason);
+      }
+    }
     return NextResponse.json({ ok: true });
   } catch (err) {
     return handleError(err);

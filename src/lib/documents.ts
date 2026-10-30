@@ -258,6 +258,14 @@ export async function listAttachments(documentId: string): Promise<Attachment[]>
   }));
 }
 
+export async function listAttachmentStoragePaths(documentId: string): Promise<string[]> {
+  const rows = await all<{ storage_path: string }>(
+    `SELECT storage_path FROM attachments WHERE document_id = ?`,
+    [documentId]
+  );
+  return rows.map((row) => row.storage_path);
+}
+
 export async function getAttachmentWithPath(
   attachmentId: string
 ): Promise<(Attachment & { storagePath: string }) | null> {

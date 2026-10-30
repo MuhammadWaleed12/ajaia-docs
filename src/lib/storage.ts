@@ -1,5 +1,5 @@
-import { mkdir, writeFile, readFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { newId } from "./id";
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB — keep local storage bounded
@@ -14,6 +14,21 @@ export const MAX_UPLOAD_BYTES = MAX_FILE_BYTES;
  */
 function uploadRoot(): string {
   return resolve(process.env.UPLOAD_DIR ?? "./uploads");
+}
+
+function resolveUploadPath(relPath: string): string {
+  const root = uploadRoot();
+  const full = resolve(root, relPath);
+  const fromRoot = relative(root, full);
+  if (
+    !fromRoot ||
+    fromRoot === ".." ||
+    fromRoot.startsWith(`..${sep}`) ||
+    isAbsolute(fromRoot)
+  ) {
+    throw new Error("Invalid storage path");
+  }
+  return full;
 }
 
 export async function writeUpload(bytes: Uint8Array): Promise<string> {
@@ -32,11 +47,13 @@ export async function writeUpload(bytes: Uint8Array): Promise<string> {
 }
 
 export async function readUpload(relPath: string): Promise<Buffer> {
-  const full = resolve(uploadRoot(), relPath);
-  const root = uploadRoot();
-  // Path traversal guard.
-  if (!full.startsWith(root + "/") && full !== root) {
-    throw new Error("Invalid storage path");
+  return readFile(resolveUploadPath(relPath));
+}
+
+export async function deleteUpload(relPath: string): Promise<void> {
+  try {
+    await unlink(resolveUploadPath(relPath));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
-  return readFile(full);
 }

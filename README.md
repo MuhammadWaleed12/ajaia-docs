@@ -219,13 +219,15 @@ npm run test:watch       # watch mode
 ```
 
 Tests live in `tests/` and use **Vitest** with an in-memory libSQL database.
-15 tests cover:
+18 tests cover:
 
 - The full **authorization boundary** (owner / editor / viewer / no access);
 - **Share upsert idempotency** and share removal;
 - `listDocumentsForUser` merging owned + shared with correct role tags;
 - The **file-import** conversion (markdown subset, `.txt` → HTML, HTML
-  escaping, unsupported-file rejection).
+  escaping, unsupported-file rejection);
+- Attachment storage cleanup, idempotent deletion, and path-traversal
+  protection when documents are deleted.
 
 See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for why these areas were chosen
 over blanket coverage.

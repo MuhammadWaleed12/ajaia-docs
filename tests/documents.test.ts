@@ -3,7 +3,11 @@ import { makeTestDb, resetTestDb } from "./helpers";
 import { upsertUser } from "../src/lib/users";
 import {
   createDocument,
+  createAttachment,
+  deleteDocument,
+  getAttachmentWithPath,
   getDocumentForUser,
+  listAttachmentStoragePaths,
   listDocumentsForUser,
   listSharesForDocument,
   removeShare,
@@ -117,5 +121,27 @@ describe("listDocumentsForUser", () => {
     expect(byId[shared.id].ownerId).toBe(bob.id);
     expect(byId[shared.id].sharedPermission).toBe("view");
     expect(byId[shared.id].ownerName).toBe("Bob");
+  });
+});
+
+describe("attachment lifecycle", () => {
+  it("returns storage paths before document deletion cascades attachment metadata", async () => {
+    const alice = await upsertUser({ email: "alice@t.test", name: "Alice" });
+    const doc = await createDocument({ ownerId: alice.id, title: "With files" });
+    const attachment = await createAttachment({
+      documentId: doc.id,
+      filename: "report.pdf",
+      mimeType: "application/pdf",
+      sizeBytes: 4,
+      storagePath: "202610/stored-file",
+    });
+
+    await expect(listAttachmentStoragePaths(doc.id)).resolves.toEqual([
+      "202610/stored-file",
+    ]);
+
+    await deleteDocument(doc.id);
+
+    await expect(getAttachmentWithPath(attachment.id)).resolves.toBeNull();
   });
 });
